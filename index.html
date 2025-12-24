@@ -156,7 +156,7 @@
     .dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 6px rgba(255,59,59,.14)}
     .divider{height:1px;background:linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);margin:14px 0}
     .content{padding:4px 20px 18px}
-    .slide{min-height:160px;display:none}
+    .slide{min-height:160px;display:none;position:relative}
     .slide.active{display:block}
     .slide.enter{animation:slideIn .38s ease both}
     @keyframes slideIn{
@@ -165,9 +165,36 @@
     }
     .p{font-size:15px;line-height:1.75;color:rgba(255,255,255,.92);margin:0 0 10px}
     .p strong{color:var(--gold2);font-weight:800}
+    .p.meta{font-size:13px;color:rgba(255,255,255,.78)}
     .signature{margin-top:10px;display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
     .signLeft,.signRight{font-size:13px;color:var(--muted);line-height:1.55}
     .signRight{text-align:right;white-space:nowrap}
+    .stamp{
+      position:absolute;
+      right:18px;bottom:86px;
+      padding:10px 14px;
+      border:2px solid rgba(246,213,122,.7);
+      border-radius:12px;
+      color:rgba(246,213,122,.95);
+      font-weight:900;
+      letter-spacing:2px;
+      transform:rotate(-12deg) scale(.6);
+      opacity:0;
+      filter:drop-shadow(0 10px 20px rgba(246,213,122,.25));
+      background:rgba(246,213,122,.06);
+    }
+    .stamp.show{animation:stampIn .5s ease-out forwards}
+    @keyframes stampIn{
+      to{transform:rotate(-12deg) scale(1);opacity:1}
+    }
+    .shareRow{
+      display:flex;
+      gap:10px;
+      margin:6px 0 8px;
+    }
+    .shareRow .btn{
+      flex:1;
+    }
     .qr{
       margin-top:10px;
       display:flex;
@@ -234,6 +261,20 @@
         linear-gradient(180deg, rgba(8,8,14,.88), rgba(12,10,18,.78));
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
+    }
+    .countdown{
+      position:absolute;inset:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:64px;font-weight:900;
+      color:var(--gold2);
+      opacity:0;pointer-events:none;
+      text-shadow:0 12px 26px rgba(246,213,122,.25);
+    }
+    .countdown.show{opacity:1;transition:opacity .2s ease}
+    .countdown.pop{animation:countPop .35s ease both}
+    @keyframes countPop{
+      from{transform:scale(.8);opacity:.6}
+      to{transform:scale(1);opacity:1}
     }
     .stage.hide{opacity:0;pointer-events:none;transition:opacity .5s ease}
     .envelope{
@@ -303,6 +344,12 @@
       .slide.enter{animation:none}
       .iconBtn:active,.stageBtn:active{transform:none}
     }
+    @media (max-width: 520px){
+      #btnPrev{display:none}
+      #btnNext{flex:1}
+      #pageInfo{min-width:60px;text-align:center}
+      .footer{justify-content:flex-end}
+    }
   </style>
 </head>
 <body>
@@ -314,6 +361,7 @@
 </audio>
 
 <div class="stage" id="stage">
+  <div class="countdown" id="countdown" aria-hidden="true">3</div>
   <div class="envelope" role="dialog" aria-modal="true" aria-label="打开新年贺卡">
     <div class="seal" aria-hidden="true">拆封</div>
     <div class="stageTitle"><span class="horse" aria-hidden="true">🐎</span>马年元旦贺卡</div>
@@ -356,13 +404,16 @@
 
     <div class="content">
       <div class="slide active">
-        <p class="p">亲爱的 <strong id="toName">尊敬的客户</strong>：</p>
-        <p class="p">感谢过去一年里，您对 <strong>柯影数智</strong> 的信任与支持。</p>
-        <p class="p">新的一年，愿您 <strong>马到成功</strong>，所行皆坦途。</p>
+        <p class="p">亲爱的 <strong id="toName">尊敬的朋友</strong>：</p>
+        <p class="p meta">身份：<strong id="companyName">学生/在职/企业/个体</strong> · 方向：<strong id="projectName">学业/事业/经营</strong></p>
+        <p class="p">感谢过去 <strong id="coYears">1</strong> 年里，您对 <strong>柯影数智</strong> 的信任与支持。</p>
+        <p class="p">这一份支持，我们始终铭记在心。</p>
+        <p class="p">新的一年，把祝愿送上。</p>
       </div>
 
       <div class="slide">
-        <p class="p">愿您：</p>
+        <p class="p">愿您无论是学生、在职伙伴、企业客户，还是个体经营者：</p>
+        <p class="p"><strong>马到成功</strong>，所行皆坦途。</p>
         <p class="p"><strong>项目更顺</strong>，合作更稳，进展更快。</p>
         <p class="p"><strong>心愿皆达</strong>，把每一个目标都跑成“结果”。</p>
         <p class="p">也愿我们继续并肩向前，把每一次交付，都做成值得回忆的作品。</p>
@@ -379,6 +430,10 @@
             <div id="fromName">柯影数智 敬上</div>
             <div id="today">2025.12.24</div>
           </div>
+        </div>
+        <div class="stamp" id="stamp">已签收祝福</div>
+        <div class="shareRow">
+          <button class="btn ghost" id="btnPoster" type="button">生成分享海报</button>
         </div>
         <div class="divider"></div>
         <div class="qr">
@@ -403,22 +458,32 @@
   var CONFIG = {
     title: "元旦快乐｜马到成功",
     toName: "尊敬的客户",
-    fromName: "柯影数智 敬上"
+    fromName: "柯影数智 敬上",
+    companyName: "学生/在职/企业/个体",
+    projectName: "学业/事业/经营",
+    coYears: "1",
+    shareTag: "KY2026"
   };
 
   function applyConfig(){
     document.getElementById("mainTitle").textContent = CONFIG.title;
     document.getElementById("toName").textContent = CONFIG.toName;
     document.getElementById("fromName").textContent = CONFIG.fromName;
+    document.getElementById("companyName").textContent = CONFIG.companyName;
+    document.getElementById("projectName").textContent = CONFIG.projectName;
+    document.getElementById("coYears").textContent = CONFIG.coYears;
   }
 
-  // URL 参数个性化：?to=xxx&from=xxx&title=xxx
+  // URL 参数个性化：?to=xxx&from=xxx&title=xxx&company=xxx&project=xxx&years=1
   (function(){
     try{
       var qs = new URLSearchParams(location.search);
       if(qs.get("title")) CONFIG.title = qs.get("title");
       if(qs.get("to")) CONFIG.toName = qs.get("to");
       if(qs.get("from")) CONFIG.fromName = qs.get("from");
+      if(qs.get("company")) CONFIG.companyName = qs.get("company");
+      if(qs.get("project")) CONFIG.projectName = qs.get("project");
+      if(qs.get("years")) CONFIG.coYears = qs.get("years");
     }catch(e){}
   })();
   applyConfig();
@@ -436,7 +501,9 @@
   var opened = false;
   var stage = document.getElementById("stage");
   var btnOpen = document.getElementById("btnOpen");
+  var countdown = document.getElementById("countdown");
   var yearEl = document.getElementById("year");
+  var countdownActive = false;
 
   // 翻页
   var slides = document.querySelectorAll(".slide");
@@ -444,6 +511,7 @@
   var btnNext = document.getElementById("btnNext");
   var btnPrev = document.getElementById("btnPrev");
   var idx = 0;
+  var stamped = false;
 
   function render(){
     for(var i=0;i<slides.length;i++){
@@ -458,6 +526,12 @@
     pageInfo.innerHTML = (idx+1) + " / " + slides.length;
     btnPrev.disabled = (idx===0);
     btnNext.innerHTML = (idx===slides.length-1) ? "完成" : "下一页";
+    if(idx === slides.length-1 && !stamped){
+      stamped = true;
+      var stamp = document.getElementById("stamp");
+      if(stamp) stamp.classList.add("show");
+      burstAtCard(12, true);
+    }
   }
 
   function showToast(msg){
@@ -564,7 +638,9 @@
       o.stop(start + dur + 0.2);
     }
 
-    if(kind === "open"){
+    if(kind === "tick"){
+      tone(880, t0 + 0.00, 0.08);
+    }else if(kind === "open"){
       tone(523.25, t0 + 0.00, 0.18);
       tone(659.25, t0 + 0.06, 0.22);
       tone(783.99, t0 + 0.12, 0.26);
@@ -599,6 +675,20 @@
     });
   }
 
+  function getShareId(){
+    var tag = CONFIG.shareTag || "KY2026";
+    try{
+      var sid = localStorage.getItem("nyc_sid");
+      if(!sid){
+        sid = tag + "-" + Date.now().toString(36).slice(-6) + Math.random().toString(36).slice(2,6);
+        localStorage.setItem("nyc_sid", sid);
+      }
+      return sid;
+    }catch(e){
+      return tag + "-" + Date.now().toString(36).slice(-6);
+    }
+  }
+
   // 复制链接（把祝福带走）
   var btnShare = document.getElementById("btnShare");
   btnShare.onclick = function(){
@@ -607,6 +697,13 @@
       qs.set("title", CONFIG.title);
       qs.set("to", CONFIG.toName);
       qs.set("from", CONFIG.fromName);
+      qs.set("company", CONFIG.companyName);
+      qs.set("project", CONFIG.projectName);
+      qs.set("years", CONFIG.coYears);
+      qs.set("sid", getShareId());
+      qs.set("utm_source", "card");
+      qs.set("utm_medium", "share");
+      qs.set("utm_campaign", "newyear2026");
       var u = new URL(location.href);
       u.search = qs.toString();
       var url = u.toString();
@@ -624,6 +721,185 @@
       showToast("复制失败，请手动复制地址栏链接");
     }
   };
+
+  // 生成分享海报
+  var btnPoster = document.getElementById("btnPoster");
+  function makePoster(){
+    var w = 1080, h = 1920;
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    var ctxp = c.getContext("2d");
+    var g1 = ctxp.createLinearGradient(0,0,0,h);
+    g1.addColorStop(0, "#0b0b12");
+    g1.addColorStop(1, "#1a0f12");
+    ctxp.fillStyle = g1;
+    ctxp.fillRect(0,0,w,h);
+
+    var glow = ctxp.createRadialGradient(w*0.2,h*0.2,20,w*0.2,h*0.2,520);
+    glow.addColorStop(0,"rgba(246,213,122,.18)");
+    glow.addColorStop(1,"rgba(0,0,0,0)");
+    ctxp.fillStyle = glow;
+    ctxp.fillRect(0,0,w,h);
+
+    // 背景星点
+    ctxp.fillStyle = "rgba(255,255,255,.06)";
+    for(var i=0;i<90;i++){
+      var sx = Math.random()*w;
+      var sy = Math.random()*h;
+      var sr = Math.random()*2+0.5;
+      ctxp.beginPath();
+      ctxp.arc(sx, sy, sr, 0, Math.PI*2);
+      ctxp.fill();
+    }
+
+    var cardW = 860, cardH = 1280;
+    var cardX = (w-cardW)/2, cardY = 260;
+    var gold = ctxp.createLinearGradient(cardX, cardY, cardX+cardW, cardY+cardH);
+    gold.addColorStop(0, "rgba(246,213,122,.6)");
+    gold.addColorStop(1, "rgba(255,239,181,.25)");
+    ctxp.fillStyle = "rgba(255,255,255,.06)";
+    ctxp.strokeStyle = gold;
+    ctxp.lineWidth = 3;
+    ctxp.beginPath();
+    if(ctxp.roundRect) ctxp.roundRect(cardX, cardY, cardW, cardH, 36);
+    else{
+      ctxp.moveTo(cardX+36, cardY);
+      ctxp.lineTo(cardX+cardW-36, cardY);
+      ctxp.quadraticCurveTo(cardX+cardW, cardY, cardX+cardW, cardY+36);
+      ctxp.lineTo(cardX+cardW, cardY+cardH-36);
+      ctxp.quadraticCurveTo(cardX+cardW, cardY+cardH, cardX+cardW-36, cardY+cardH);
+      ctxp.lineTo(cardX+36, cardY+cardH);
+      ctxp.quadraticCurveTo(cardX, cardY+cardH, cardX, cardY+cardH-36);
+      ctxp.lineTo(cardX, cardY+36);
+      ctxp.quadraticCurveTo(cardX, cardY, cardX+36, cardY);
+    }
+    ctxp.fill();
+    ctxp.stroke();
+
+    // 顶部徽记
+    ctxp.fillStyle = "rgba(246,213,122,.15)";
+    ctxp.beginPath();
+    ctxp.arc(cardX+70, cardY+72, 28, 0, Math.PI*2);
+    ctxp.fill();
+    ctxp.fillStyle = "#ffefb5";
+    ctxp.font = "700 32px sans-serif";
+    ctxp.fillText("KY", cardX+54, cardY+83);
+
+    var yearGrad = ctxp.createLinearGradient(cardX, cardY, cardX+240, cardY+120);
+    yearGrad.addColorStop(0, "#ffefb5");
+    yearGrad.addColorStop(1, "#f6d57a");
+    ctxp.fillStyle = yearGrad;
+    ctxp.font = "900 86px sans-serif";
+    ctxp.fillText("2026", cardX+60, cardY+150);
+    ctxp.fillStyle = "rgba(245,245,247,.75)";
+    ctxp.font = "600 28px sans-serif";
+    ctxp.fillText("2025  →  2026", cardX+64, cardY+188);
+
+    ctxp.fillStyle = "#f5f5f7";
+    ctxp.font = "700 52px sans-serif";
+    ctxp.fillText(CONFIG.title, cardX+60, cardY+250);
+
+    ctxp.font = "400 38px sans-serif";
+    ctxp.fillStyle = "rgba(245,245,247,.85)";
+    ctxp.fillText("致 " + CONFIG.toName, cardX+60, cardY+330);
+    ctxp.fillText("身份：" + CONFIG.companyName, cardX+60, cardY+390);
+    ctxp.fillText("方向：" + CONFIG.projectName, cardX+60, cardY+440);
+
+    // 祝福段落（避免中间空洞）
+    ctxp.fillStyle = "rgba(255,255,255,.05)";
+    ctxp.strokeStyle = "rgba(255,255,255,.16)";
+    ctxp.lineWidth = 1;
+    ctxp.beginPath();
+    if(ctxp.roundRect) ctxp.roundRect(cardX+50, cardY+560, cardW-100, 320, 26);
+    else{
+      ctxp.rect(cardX+50, cardY+560, cardW-100, 320);
+    }
+    ctxp.fill();
+    ctxp.stroke();
+
+    ctxp.fillStyle = "rgba(245,245,247,.9)";
+    ctxp.font = "400 36px sans-serif";
+    var lines = [
+      "感谢一路同行的信任与支持，",
+      "新年继续并肩向前。",
+      "愿你马到成功，所行皆坦途，",
+      "心愿皆达，把目标跑成结果。"
+    ];
+    var ly = cardY + 640;
+    for(var i=0;i<lines.length;i++){
+      ctxp.fillText(lines[i], cardX+80, ly + i*56);
+    }
+
+    // 分隔线与装饰点
+    ctxp.strokeStyle = "rgba(255,255,255,.22)";
+    ctxp.lineWidth = 1;
+    ctxp.beginPath();
+    ctxp.moveTo(cardX+60, cardY+920);
+    ctxp.lineTo(cardX+cardW-60, cardY+920);
+    ctxp.stroke();
+    ctxp.fillStyle = "rgba(255,59,59,.9)";
+    ctxp.beginPath();
+    ctxp.arc(cardX+60, cardY+920, 5, 0, Math.PI*2);
+    ctxp.fill();
+
+    ctxp.fillStyle = "rgba(245,245,247,.78)";
+    ctxp.font = "400 32px sans-serif";
+    ctxp.fillText("来自：" + CONFIG.fromName, cardX+60, cardY+cardH-120);
+    ctxp.fillText("愿 2026 与你共赴新程", cardX+60, cardY+cardH-70);
+
+    var qr = new Image();
+    qr.onload = function(){
+      var size = 280;
+      var qx = cardX + cardW - size - 60;
+      var qy = cardY + cardH - size - 120;
+      ctxp.save();
+      ctxp.fillStyle = "rgba(255,255,255,.08)";
+      ctxp.strokeStyle = "rgba(255,255,255,.18)";
+      ctxp.lineWidth = 2;
+      ctxp.beginPath();
+      if(ctxp.roundRect) ctxp.roundRect(qx-16, qy-16, size+32, size+32, 24);
+      else{
+        ctxp.moveTo(qx-16+24, qy-16);
+        ctxp.lineTo(qx-16+size+32-24, qy-16);
+        ctxp.quadraticCurveTo(qx-16+size+32, qy-16, qx-16+size+32, qy-16+24);
+        ctxp.lineTo(qx-16+size+32, qy-16+size+32-24);
+        ctxp.quadraticCurveTo(qx-16+size+32, qy-16+size+32, qx-16+size+32-24, qy-16+size+32);
+        ctxp.lineTo(qx-16+24, qy-16+size+32);
+        ctxp.quadraticCurveTo(qx-16, qy-16+size+32, qx-16, qy-16+size+32-24);
+        ctxp.lineTo(qx-16, qy-16+24);
+        ctxp.quadraticCurveTo(qx-16, qy-16, qx-16+24, qy-16);
+      }
+      ctxp.fill();
+      ctxp.stroke();
+      ctxp.drawImage(qr, qx, qy, size, size);
+      ctxp.restore();
+
+      var url = c.toDataURL("image/png");
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "newyear-card.png";
+      if("download" in a){
+        a.click();
+        showToast("海报已生成");
+      }else{
+        window.open(url, "_blank");
+        showToast("海报已打开");
+      }
+    };
+    qr.onerror = function(){
+      showToast("二维码加载失败，已生成无二维码海报");
+      var url = c.toDataURL("image/png");
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "newyear-card.png";
+      if("download" in a) a.click();
+    };
+    qr.src = "assest/微信服务号.png";
+  }
+  if(btnPoster){
+    btnPoster.onclick = function(){ makePoster(); };
+  }
+
 
   btnNext.onclick = function(){
     if(!opened){ showToast("先点“拆封”再继续"); return; }
@@ -649,7 +925,7 @@
     btnNext.onclick();
   };
 
-  btnOpen.onclick = function(){
+  function doOpen(){
     if(opened) return;
     opened = true;
     ensureAudio();
@@ -669,6 +945,41 @@
     }
     if(soundOn) startBgm();
     showToast("拆封成功：轻触继续");
+  }
+
+  function startCountdown(){
+    if(opened || countdownActive) return;
+    if(prefersReduce){ doOpen(); return; }
+    countdownActive = true;
+    var n = 3;
+    if(countdown){
+      countdown.textContent = n;
+      countdown.classList.add("show");
+      countdown.classList.remove("pop");
+      void countdown.offsetWidth;
+      countdown.classList.add("pop");
+    }
+    ensureAudio();
+    playChime("tick");
+    var timer = setInterval(function(){
+      n--;
+      playChime("tick");
+      if(n <= 0){
+        clearInterval(timer);
+        countdownActive = false;
+        if(countdown) countdown.classList.remove("show");
+        doOpen();
+      }else if(countdown){
+        countdown.textContent = n;
+        countdown.classList.remove("pop");
+        void countdown.offsetWidth;
+        countdown.classList.add("pop");
+      }
+    }, 1000);
+  }
+
+  btnOpen.onclick = function(){
+    startCountdown();
   };
 
   // 金粉粒子 + 彩蛋烟花（保守实现）
